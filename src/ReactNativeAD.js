@@ -50,9 +50,7 @@ export default class ReactNativeAD {
     if(config === null || config === void 0)
       throw new Error('Invalid ADConfig object', config)
     if(typeof config.client_id !== 'string')
-      throw new Error('client_id is not provided.')    
-    if (config.tenant != null)
-        config.token_uri = defaultTokenUrl.replace('common', config.tenant)
+      throw new Error('client_id is not provided.')
     this.config = config
     this.credentials = {}
     _contexts[config.client_id] = this
@@ -237,11 +235,17 @@ export default class ReactNativeAD {
     return new Promise((resolve, reject) => {
       try {
         log.debug(`${grantType} access token for resource ${params.resource}`)
-        var tm = Timer.setTimeout(()=>{
-          reject('time out')
-        }, 15000)
+        //var tm = Timer.setTimeout(()=>{
+        //  reject('time out')
+        //}, 15000)
 
         let body = `grant_type=${grantType}${_serialize(params)}`
+
+        console.log(this.config);
+        console.log(this.config.token_uri);
+        console.log(defaultTokenUrl);
+        console.log(body);
+
         fetch(this.config.token_uri ? this.config.token_uri : defaultTokenUrl, {
           method : 'POST',
           mode : 'cors',
@@ -251,17 +255,18 @@ export default class ReactNativeAD {
           body
         })
         .then((response) => {
-          Timer.clearTimeout(tm)
-          return response.text()
+          //Timer.clearTimeout(tm)
+          return response
         })
         .then((res) => {
           let cred: GrantTokenResp = {
             resource : params.resource,
-            response : JSON.parse(res.replace('access_token=',''))
+            response : JSON.parse(res._bodyText)
           }
+          console.log(cred.response)
           // save to memory context
           this.credentials[params.resource] = cred.response
-          // save to persistent context
+          // save to persistent context 
           let cacheKey = _getResourceKey(this.config, params.resource)
           if(cred.response.access_token) {
             log.debug(`save credential ${cacheKey} `, cred.response)
@@ -276,6 +281,7 @@ export default class ReactNativeAD {
         .catch(reject)
 
       } catch(err) {
+        console.log(err);
         reject(err)
       }
     })
